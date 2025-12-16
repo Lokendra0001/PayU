@@ -1,0 +1,13 @@
+# Server
+server/node_modules/
+server/.env
+
+# Client (if needed)
+client/node_modules/
+client/.env
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
