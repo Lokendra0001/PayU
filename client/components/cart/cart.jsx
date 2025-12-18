@@ -77,8 +77,11 @@ const Cart = () => {
     try {
       const response = await axios.post(
         "https://payu-socd.onrender.com/payment",
+        // "http://localhost:5000/payment",
         orderData
       );
+
+      console.log(response.data);
 
       setForm(response.data);
 
