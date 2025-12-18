@@ -8,7 +8,7 @@ const cors = require('cors')
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 const corsOptions = {
-    origin: "http://localhost:3000", // frontend
+    origin: ["http://localhost:3000", "https://pay-u-orpin.vercel.app"], // frontend
     methods: ["GET", "POST", "PUT", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true, // allow cookies
@@ -58,7 +58,7 @@ app.post("/payment", async (req, res) => {
 
         const data = await payuClient.paymentInitiate({
             txnid,
-            amount: total.toFixed(2),
+            amount: total,
             productinfo: items.map(i => i.name).join(", "),
             firstname: "Rakesh",
             email: "r@gmail.com",
@@ -84,11 +84,11 @@ app.post("/verify/:status", async (req, res) => {
 
         if (txnDetails.status === "success") {
             return res.redirect(
-                `http://localhost:3000/success?txnid=${txnDetails.txnid}&amount=${txnDetails.amt}&mode=${txnDetails.mode}&payuid=${txnDetails.mihpayid}`
+                `https://pay-u-orpin.vercel.app/success?txnid=${txnDetails.txnid}&amount=${txnDetails.amt}&mode=${txnDetails.mode}&payuid=${txnDetails.mihpayid}`
             );
         } else {
             return res.redirect(
-                `http://localhost:3000/failure?txnid=${txnDetails.txnid}&error=${txnDetails.error_Message}`
+                `https://pay-u-orpin.vercel.app/failure?txnid=${txnDetails.txnid}&error=${txnDetails.error_Message}`
             );
         }
 

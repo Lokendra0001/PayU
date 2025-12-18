@@ -46,6 +46,7 @@ const Cart = () => {
   const [cartItems, setCartItems] = useState(initialCartItems);
   const [promoCode, setPromoCode] = useState("");
   const [form, setForm] = useState("");
+  const [money, setMoney] = useState(1);
 
   const handleQuantityChange = (id, delta) => {
     setCartItems((prev) =>
@@ -66,10 +67,10 @@ const Cart = () => {
   const handleCheckout = async () => {
     const orderData = {
       items: cartItems,
-      subtotal: calculateSubtotal(),
-      tax: calculateTax(),
-      shipping: 99,
-      total: calculateTotal(),
+      subtotal: 0,
+      tax: 0,
+      shipping: 0,
+      total: money,
       promoCode,
     };
 
@@ -188,11 +189,31 @@ const Cart = () => {
               <div className="border-t border-gray-200 pt-4 mb-6">
                 <div className="flex justify-between text-lg font-semibold">
                   <span className="text-black">Total</span>
-                  <span className="text-blue-500">
-                    ${calculateTotal().toLocaleString()}
-                  </span>
+                  <span className="text-blue-500">{money}</span>
                 </div>
               </div>
+
+              <input
+                type="number"
+                value={money}
+                onChange={(e) => setMoney(e.target.value)}
+                placeholder="Enter amount"
+                className="
+    w-full
+    rounded-xl
+    border border-gray-300
+    bg-white
+    px-4 py-3
+    text-lg
+    outline-none
+    transition
+    focus:border-black
+    focus:ring-2
+    focus:ring-black/10
+    text-black
+    mb-10
+  "
+              />
 
               <button
                 onClick={handleCheckout}
