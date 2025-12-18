@@ -100,7 +100,7 @@ app.post("/payment", async (req, res) => {
 // ---------------------------
 // Verify Payment Route
 // ---------------------------
-app.post("/verify/:status", async (req, res) => {
+app.post("/:status", async (req, res) => {
     try {
         const txnid = req.body.txnid;
 
