@@ -3,8 +3,41 @@ const express = require("express");
 const app = express();
 const payuClient = require("./payu.config");
 const verifyPayment = require("./verify-payment");
-const cors = require('cors')
+const cors = require('cors');
+
+
 const crypto = require("crypto");
+
+
+// sha512(key | txnid | amount | productinfo | firstname | email | udf1 | udf2 | udf3 | udf4 | udf5 |||||| SALT)
+
+function generatePayUHash({
+    key,
+    txnid,
+    amount,
+    productinfo,
+    firstname,
+    email,
+    salt,
+}) {
+    const hashString =
+        `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}` +
+        `|||||` +   // udf1–udf5 (5 pipes)
+        `||||||` +  // extra 6 pipes
+        `${salt}`;
+
+    console.log("PayU Hash String 👉", hashString);
+
+
+    return crypto
+        .createHash("sha512")
+        .update(hashString)
+        .digest("hex");
+}
+
+
+
+
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -19,85 +52,70 @@ app.use(cors(corsOptions));
 
 
 const PORT = process.env.PORT || 5000;
-
-app.get("/", (req, res) => {
-    res.send("HELLO FROM SERVER");
-});
-
-
-// static
-app.get("/get-payment", async (req, res) => {
-    try {
-        const txnid = `TXN_${Date.now()}`;
-
-
-
-
-        const data = await payuClient.paymentInitiate({
-            txnid,
-            amount: "120000",
-            productinfo: "Samsung Galaxy S24 (Black)",
-            firstname: "Rakesh",
-            email: "r@gmail.com",
-            phone: "1234567990",
-            surl: "https://payu-socd.onrender.com/verify/success",
-            furl: "https://payu-socd.onrender.com/verify/failure",
-            isAmountFilledByCustomer: false,
-            hash
-        });
-        res.send(data);
-
-    } catch (error) {
-        res.status(500).json({ msg: error.message });
-    }
-});
-
-
-// Dynamic
 app.post("/payment", async (req, res) => {
     try {
         const { items, total } = req.body;
 
         const txnid = `TXN_${Date.now()}`;
+        const key = process.env.PAYU_KEY;
+        const salt = process.env.PAYU_SALT;
 
-        function hashPwd({ key, txnid, amount, productinfo, firstname, email, salt }) {
-            const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`;
-            return crypto.createHash("sha512").update(hashString).digest("hex");
-        }
+        const productinfo = items.map(i => i.name).join(", ");
+        const firstname = "Rakesh";
+        const email = "r@gmail.com";
+        const phone = "1234567990";
 
-        const hash = hashPwd({
-            key: process.env.PAYU_KEY,
+        // Generate hash
+        const hash = generatePayUHash({
+            key,
             txnid,
-            amount: "120000",
-            productinfo: "Samsung Galaxy S24 (Black)",
-            firstname: "Rakesh",
-            email: "r@gmail.com",
-            salt: process.env.PAYU_SALT
+            amount: total.toString(),
+            productinfo,
+            firstname,
+            email,
+            salt
         });
 
+        // HTML form that auto-submits to PayU
+        const formHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Redirecting to PayU</title>
+            </head>
+            <body>
+                <p>Redirecting to payment...</p>
+            <form id="payu_form" method="post" action="https://secure.payu.in/_payment">
+                    <input type="hidden" name="key" value="${key}" />
+                    <input type="hidden" name="txnid" value="${txnid}" />
+                    <input type="hidden" name="amount" value="${total.toString()}" />
+                    <input type="hidden" name="productinfo" value="${productinfo}" />
+                    <input type="hidden" name="firstname" value="${firstname}" />
+                    <input type="hidden" name="email" value="${email}" />
+                    <input type="hidden" name="phone" value="${phone}" />
+                    <input type="hidden" name="surl" value="https://payu-socd.onrender.com/success" />
+                    <input type="hidden" name="furl" value="https://payu-socd.onrender.com/failure" />
+                    <input type="hidden" name="hash" value="${hash}" />
+                </form>
+                <script>
+                    document.getElementById('payu_form').submit();
+                </script>
+            </body>
+            </html>
+        `;
 
-
-        const data = await payuClient.paymentInitiate({
-            txnid,
-            amount: total,
-            productinfo: items.map(i => i.name).join(", "),
-            firstname: "Rakesh",
-            email: "r@gmail.com",
-            phone: "1234567990",
-            surl: "https://payu-socd.onrender.com/verify/success",
-            furl: "https://payu-socd.onrender.com/verify/failure",
-            isAmountFilledByCustomer: false,
-            hash
-        });
-        res.json(data);
+        // Send the HTML page — browser will redirect automatically in same tab
+        res.send(formHtml);
 
     } catch (error) {
         res.status(500).json({ msg: error.message });
     }
-})
+});
 
 
-app.post("/verify/:status", async (req, res) => {
+
+
+app.post("/:status", async (req, res) => {
     try {
         const txnid = req.body.txnid;
 
@@ -113,6 +131,15 @@ app.post("/verify/:status", async (req, res) => {
                 `https://pay-u-orpin.vercel.app/failure?txnid=${txnDetails.txnid}&error=${txnDetails.error_Message}`
             );
         }
+        // if (txnDetails.status === "success") {
+        //     return res.redirect(
+        //         `http://localhost:3000/success?txnid=${txnDetails.txnid}&amount=${txnDetails.amt}&mode=${txnDetails.mode}&payuid=${txnDetails.mihpayid}`
+        //     );
+        // } else {
+        //     return res.redirect(
+        //         `http://localhost:3000/failure?txnid=${txnDetails.txnid}&error=${txnDetails.error_Message}`
+        //     );
+        // }
 
     } catch (err) {
         console.error("Verification failed ❌", err);
