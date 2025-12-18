@@ -4,6 +4,7 @@ const app = express();
 const payuClient = require("./payu.config");
 const verifyPayment = require("./verify-payment");
 const cors = require('cors')
+const crypto = require("crypto");
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -29,6 +30,9 @@ app.get("/get-payment", async (req, res) => {
     try {
         const txnid = `TXN_${Date.now()}`;
 
+
+
+
         const data = await payuClient.paymentInitiate({
             txnid,
             amount: "120000",
@@ -38,7 +42,8 @@ app.get("/get-payment", async (req, res) => {
             phone: "1234567990",
             surl: "https://payu-socd.onrender.com/verify/success",
             furl: "https://payu-socd.onrender.com/verify/failure",
-            isAmountFilledByCustomer: false
+            isAmountFilledByCustomer: false,
+            hash
         });
         res.send(data);
 
@@ -55,6 +60,22 @@ app.post("/payment", async (req, res) => {
 
         const txnid = `TXN_${Date.now()}`;
 
+        function hashPwd({ key, txnid, amount, productinfo, firstname, email, salt }) {
+            const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||||||${salt}`;
+            return crypto.createHash("sha512").update(hashString).digest("hex");
+        }
+
+        const hash = hashPwd({
+            key: process.env.PAYU_KEY,
+            txnid,
+            amount: "120000",
+            productinfo: "Samsung Galaxy S24 (Black)",
+            firstname: "Rakesh",
+            email: "r@gmail.com",
+            salt: process.env.PAYU_SALT
+        });
+
+
 
         const data = await payuClient.paymentInitiate({
             txnid,
@@ -65,7 +86,8 @@ app.post("/payment", async (req, res) => {
             phone: "1234567990",
             surl: "https://payu-socd.onrender.com/verify/success",
             furl: "https://payu-socd.onrender.com/verify/failure",
-            isAmountFilledByCustomer: false
+            isAmountFilledByCustomer: false,
+            hash
         });
         res.json(data);
 
