@@ -36,8 +36,8 @@ app.get("/get-payment", async (req, res) => {
             firstname: "Rakesh",
             email: "r@gmail.com",
             phone: "1234567990",
-            surl: "http://localhost:5000/verify/success",
-            furl: "http://localhost:5000/verify/failure",
+            surl: "https://payu-socd.onrender.com/verify/success",
+            furl: "https://payu-socd.onrender.com/verify/failure",
             isAmountFilledByCustomer: false
         });
         res.send(data);
@@ -63,8 +63,8 @@ app.post("/payment", async (req, res) => {
             firstname: "Rakesh",
             email: "r@gmail.com",
             phone: "1234567990",
-            surl: "http://localhost:5000/verify/success",
-            furl: "http://localhost:5000/verify/failure",
+            surl: "https://payu-socd.onrender.com/verify/success",
+            furl: "https://payu-socd.onrender.com/verify/failure",
             isAmountFilledByCustomer: false
         });
         res.json(data);
@@ -95,7 +95,7 @@ app.post("/verify/:status", async (req, res) => {
     } catch (err) {
         console.error("Verification failed ❌", err);
         return res.redirect(
-            `http://localhost:3000/payment/failure?error=Verification failed`
+            `https://pay-u-orpin.vercel.app/payment/failure?error=Verification failed`
         );
     }
 });
