@@ -44,8 +44,8 @@ app.post("/payment", async (req, res) => {
         firstname: "Rakesh",
         email: "r@gmail.com",
         phone: "1234567990",
-        surl: `${BASE_URL}/verify/success`,
-        furl: `${BASE_URL}/verify/failure`,
+        surl: `https://payu-socd.onrender.com/verify/success`,
+        furl: `https://payu-socd.onrender.com/verify/failure`,
         isAmountFilledByCustomer: false
     });
 

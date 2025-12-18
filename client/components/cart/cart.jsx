@@ -76,7 +76,7 @@ const Cart = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/payment",
+        "https://payu-socd.onrender.com/payment",
         orderData,
         {
           withCredentials: true,
