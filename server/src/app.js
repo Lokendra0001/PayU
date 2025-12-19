@@ -72,7 +72,7 @@ app.post("/payment", async (req, res) => {
         </head>
         <body>
             <p>Redirecting to payment...</p>
-          <form id="payu_form" method="post" action="https://secure.payu.in/_payment">
+          <form id="payu_form" method="post" action="https://secure.payu.in/_payment" target="_self">
                 <input type="hidden" name="key" value="${key}" />
                 <input type="hidden" name="txnid" value="${txnid}" />
                 <input type="hidden" name="amount" value="${amountStr}" />
@@ -80,8 +80,8 @@ app.post("/payment", async (req, res) => {
                 <input type="hidden" name="firstname" value="${firstname}" />
                 <input type="hidden" name="email" value="${email}" />
                 <input type="hidden" name="phone" value="${phone}" />
-                <input type="hidden" name="surl" value="https://payu-socd.onrender.com/success" />
-                <input type="hidden" name="furl" value="https://payu-socd.onrender.com/failure" />
+                <input type="hidden" name="surl" value="https://payu-socd.onrender.com/payu/callback" />
+                <input type="hidden" name="furl" value="https://payu-socd.onrender.com/payu/callback" />
                 <input type="hidden" name="hash" value="${hash}" />
             </form>
             <script>document.getElementById('payu_form').submit();</script>
@@ -143,41 +143,51 @@ app.get("/", (req, res) => {
 
 
 
-
-app.post("/:status", async (req, res) => {
+app.post("/payu/callback", async (req, res) => {
     try {
-        const verification = await payuClient.verifyPayment(req.body.txnid);
+        const payuData = req.body;
+        const txnid = payuData.txnid;
 
-        // Get the first transaction object
-        const txnDetails = Object.values(verification.transaction_details)[0];
-        console.log(txnDetails)
-
-        if (!txnDetails) {
+        if (!txnid) {
             return res.redirect(
-                `https://pay-u-orpin.vercel.app/failure?error=Transaction not found`
+                "https://pay-u-orpin.vercel.app/failure?error=Invalid transaction"
             );
         }
 
-        if (txnDetails.status === "success") {
+        console.log("PayU Callback Data 👉", payuData);
+
+        // ⏳ VERIFY FIRST (blocking)
+        const verification = await payuClient.verifyPayment(txnid);
+        const txn = Object.values(verification.transaction_details)[0];
+
+
+        console.log("PayU Callback Verification 👉", verification);
+
+        if (!txn) {
             return res.redirect(
-                `https://pay-u-orpin.vercel.app/success?txnid=${txnDetails.txnid}&amount=${txnDetails.amt}&mode=${txnDetails.mode}&payuid=${txnDetails.mihpayid}`
+                "https://pay-u-orpin.vercel.app/failure?error=Verification failed"
+            );
+        }
+
+        // ✅ FINAL DECISION
+        if (txn.status === "success") {
+            return res.redirect(
+                `https://pay-u-orpin.vercel.app/success?txnid=${txn.txnid}&amount=${txn.amt}`
             );
         } else {
-            console.log(txnDetails)
             return res.redirect(
-                `https://pay-u-orpin.vercel.app/failure?txnid=${txnDetails.txnid}&error=${txnDetails.error_Message}`
+                `https://pay-u-orpin.vercel.app/failure?error=${txn.error_Message}`
             );
         }
 
-
-
     } catch (err) {
-        console.error("Verification failed ❌", err);
+        console.error("PayU Verify Error ❌", err);
         return res.redirect(
-            `https://pay-u-orpin.vercel.app/payment/failure?error=Verification failed`
+            "https://pay-u-orpin.vercel.app/failure?error=Server verification error"
         );
     }
 });
+
 
 // ---------------------------
 // Server
