@@ -10,7 +10,8 @@ const Cart = () => {
   const handlePayment = async () => {
     try {
       // This will open the PayU payment page automatically
-      const res = await axios.post("http://localhost:5000/payment", {
+      // const res = await axios.post("http://localhost:5000/payment", {
+      const res = await axios.post("https://payu-socd.onrender.com/payment", {
         items: [{ name: "Sample Product", price: amount, quantity: 1 }],
         total: amount,
       });

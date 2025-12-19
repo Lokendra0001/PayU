@@ -99,6 +99,10 @@ app.post("/payment", async (req, res) => {
     }
 });
 
+app.get("/", (req, res) => {
+    res.send("HELLO FROM SERVER!")
+})
+
 // ---------------------------
 // Verify Payment Route
 // ---------------------------
@@ -138,6 +142,10 @@ app.post("/payment", async (req, res) => {
 //         );
 //     }
 // });
+
+
+
+
 app.post("/:status", async (req, res) => {
     try {
         const verification = await payuClient.verifyPayment(req.body.txnid);
