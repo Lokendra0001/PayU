@@ -80,8 +80,8 @@ app.post("/payment", async (req, res) => {
                 <input type="hidden" name="firstname" value="${firstname}" />
                 <input type="hidden" name="email" value="${email}" />
                 <input type="hidden" name="phone" value="${phone}" />
-                <input type="hidden" name="surl" value="https://payu-socd.onrender.com/payu/callback" />
-                <input type="hidden" name="furl" value="https://payu-socd.onrender.com/payu/callback" />
+                <input type="hidden" name="surl" value="https://payu-socd.onrender.com/success" />
+                <input type="hidden" name="furl" value="https://payu-socd.onrender.com/failure" />
                 <input type="hidden" name="hash" value="${hash}" />
             </form>
             <script>document.getElementById('payu_form').submit();</script>
@@ -141,53 +141,70 @@ app.get("/", (req, res) => {
 //     }
 // });
 
+function verifyPayUCallbackHash(body, salt) {
+    const {
+        status,
+        txnid,
+        amount,
+        productinfo,
+        firstname,
+        email,
+        key,
+        hash
+    } = body;
+
+    // Use the SAME format as the payment hash generation
+    const hashString =
+        `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}` +
+        "|||||" +  // udf1–udf5
+        "||||||" +  // extra pipes
+        salt;
+
+    const expectedHash = crypto
+        .createHash("sha512")
+        .update(hashString)
+        .digest("hex");
+
+    return expectedHash.toLowerCase() === hash.toLowerCase(); // safer comparison
+}
 
 
-app.post("/payu/callback", async (req, res) => {
-    try {
-        const payuData = req.body;
-        const txnid = payuData.txnid;
 
-        if (!txnid) {
-            return res.redirect(
-                "https://pay-u-orpin.vercel.app/failure?error=Invalid transaction"
-            );
-        }
+app.post("/:status", (req, res) => {
+    const { status } = req.params;
 
-        console.log("PayU Callback Data 👉", payuData);
+    console.log("PayU Callback Data 👉", req.body);
 
-        // ⏳ VERIFY FIRST (blocking)
-        const verification = await payuClient.verifyPayment(txnid);
-        const txn = Object.values(verification.transaction_details)[0];
-
-
-        console.log("PayU Callback Verification 👉", verification);
-
-        if (!txn) {
-            return res.redirect(
-                "https://pay-u-orpin.vercel.app/failure?error=Verification failed"
-            );
-        }
-
-        // ✅ FINAL DECISION
-        if (txn.status === "success") {
-            return res.redirect(
-                `https://pay-u-orpin.vercel.app/success?txnid=${txn.txnid}&amount=${txn.amt}`
-            );
-        } else {
-            return res.redirect(
-                `https://pay-u-orpin.vercel.app/failure?error=${txn.error_Message}`
-            );
-        }
-
-    } catch (err) {
-        console.error("PayU Verify Error ❌", err);
+    // ❌ Invalid callback path → treat as failure
+    if (status !== "success" && status !== "failure") {
+        console.error("Invalid PayU callback path");
         return res.redirect(
-            "https://pay-u-orpin.vercel.app/failure?error=Server verification error"
+            `https://pay-u-orpin.vercel.app/failure?error=Invalid callback URL`
         );
     }
-});
 
+    // ❌ Hash verification failed → treat as failure
+    const isValid = verifyPayUCallbackHash(req.body, process.env.PAYU_SALT);
+
+    if (!isValid) {
+        console.error("❌ Hash verification failed");
+        return res.redirect(
+            `https://pay-u-orpin.vercel.app/failure?txnid=${req.body?.txnid || ""}&error=Hash verification failed`
+        );
+    }
+
+    // ✅ Decide result ONLY from PayU body
+    if (req.body.status === "success") {
+        return res.redirect(
+            `https://pay-u-orpin.vercel.app/success?txnid=${req.body.txnid}&payuid=${req.body.mihpayid}`
+        );
+    }
+
+    // ❌ Genuine PayU failure
+    return res.redirect(
+        `https://pay-u-orpin.vercel.app/failure?txnid=${req.body.txnid}&error=${req.body.error_Message}`
+    );
+});
 
 // ---------------------------
 // Server
