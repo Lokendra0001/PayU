@@ -1,37 +1,61 @@
-const crypto = require('crypto');
-const payuClient = require('./payu.config');
+const crypto = require("crypto");
+const payuClient = require("./payu.config");
 
-const verifyPayment = (body) => {
-    const salt = payuClient.salt;
 
-    // Extract UDFs (user-defined fields) safely
-    const udf = [];
-    for (let i = 1; i <= 10; i++) {
-        udf.push(body[`udf${i}`] || '');
-    }
+// ---------------------------
+// Verify Payment Hash
+// ---------------------------
+function verifyPayUCallbackHash(body, salt) {
+    const {
+        status,
+        txnid,
+        amount,
+        productinfo,
+        firstname,
+        email,
+        key,
+        hash,
+        udf1 = "",
+        udf2 = "",
+        udf3 = "",
+        udf4 = "",
+        udf5 = "",
+        udf6 = "",
+        udf7 = "",
+        udf8 = "",
+        udf9 = "",
+        udf10 = ""
+    } = body;
 
-    // Build hash string exactly as PayU expects
-    const hashString = [
-        body.key,
-        body.txnid,
-        body.amount,
-        body.productinfo,
-        body.firstname,
-        body.email,
-        ...udf,
-        salt
-    ].join('|');
+    const hashString =
+        `${salt}|${status}|${udf1}|${udf2}|${udf3}|${udf4}|${udf5}|${udf6}|${udf7}|${udf8}|${udf9}|${udf10}|${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
 
-    const calculatedHash = crypto.createHash("sha512").update(hashString).digest('hex');
+    const expectedHash = crypto
+        .createHash("sha512")
+        .update(hashString)
+        .digest("hex");
 
-    console.log(calculatedHash);
-    console.log(body.hash);
+    console.log("Expected Hash 👉", expectedHash);
+    console.log("Received Hash 👉", hash);
 
-    console.log("Hash string:", hashString);
-    console.log("Calculated hash:", calculatedHash);
-    console.log("Received hash:", body.hash);
-
-    return calculatedHash === body.hash;
+    return expectedHash.toLowerCase() === hash.toLowerCase();
 }
 
-module.exports = verifyPayment;
+
+
+// ---------------------------
+// Hash Generator
+// ---------------------------
+function generatePayUHash({ key, txnid, amount, productinfo, firstname, email, salt }) {
+    const hashString =
+        `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}` +
+        "|||||" +  // udf1–udf5
+        "||||||" +  // extra pipes
+        salt;
+
+    console.log("PayU Hash String 👉", hashString);
+    return crypto.createHash("sha512").update(hashString).digest("hex");
+}
+
+
+module.exports = { verifyPayUCallbackHash, generatePayUHash };

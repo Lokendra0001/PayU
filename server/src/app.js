@@ -2,23 +2,10 @@ require("dotenv").config();
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const crypto = require("crypto");
-const payuClient = require("./payu.config");
-const verifyPayment = require("./verify-payment");
 
-// ---------------------------
-// Hash Generator
-// ---------------------------
-function generatePayUHash({ key, txnid, amount, productinfo, firstname, email, salt }) {
-    const hashString =
-        `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}` +
-        "|||||" +  // udf1–udf5
-        "||||||" +  // extra pipes
-        salt;
+const { verifyPayUCallbackHash, generatePayUHash } = require("./verify-payment");
 
-    console.log("PayU Hash String 👉", hashString);
-    return crypto.createHash("sha512").update(hashString).digest("hex");
-}
+
 
 // ---------------------------
 // Middleware
@@ -34,6 +21,10 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+app.get("/", (req, res) => {
+    res.send("HELLO FROM SERVER!");
+});
 
 // ---------------------------
 // Payment Route
@@ -88,48 +79,7 @@ app.post("/payment", async (req, res) => {
     }
 });
 
-app.get("/", (req, res) => {
-    res.send("HELLO FROM SERVER!");
-});
 
-// ---------------------------
-// Verify Payment Hash
-// ---------------------------
-function verifyPayUCallbackHash(body, salt) {
-    const {
-        status,
-        txnid,
-        amount,
-        productinfo,
-        firstname,
-        email,
-        key,
-        hash,
-        udf1 = "",
-        udf2 = "",
-        udf3 = "",
-        udf4 = "",
-        udf5 = "",
-        udf6 = "",
-        udf7 = "",
-        udf8 = "",
-        udf9 = "",
-        udf10 = ""
-    } = body;
-
-    const hashString =
-        `${salt}|${status}|${udf1}|${udf2}|${udf3}|${udf4}|${udf5}|${udf6}|${udf7}|${udf8}|${udf9}|${udf10}|${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
-
-    const expectedHash = crypto
-        .createHash("sha512")
-        .update(hashString)
-        .digest("hex");
-
-    console.log("Expected Hash 👉", expectedHash);
-    console.log("Received Hash 👉", hash);
-
-    return expectedHash.toLowerCase() === hash.toLowerCase();
-}
 
 // ---------------------------
 // Callback Route
@@ -163,30 +113,19 @@ app.post("/:status", (req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started at PORT: ${PORT}`));
 
-// ----------------------------------------------------------------------------------
 
+
+
+
+
+// ----------------------------------------------------------------------------------
 
 // require("dotenv").config();
 // const express = require("express");
 // const app = express();
 // const cors = require("cors");
-// const crypto = require("crypto");
-// const payuClient = require("./payu.config");
-// const verifyPayment = require("./verify-payment");
 
-// // ---------------------------
-// // Hash Generator
-// // ---------------------------
-// function generatePayUHash({ key, txnid, amount, productinfo, firstname, email, salt }) {
-//     const hashString =
-//         `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}` +
-//         "|||||" +  // udf1–udf5
-//         "||||||" +  // extra pipes
-//         salt;
-
-//     console.log("PayU Hash String 👉", hashString);
-//     return crypto.createHash("sha512").update(hashString).digest("hex");
-// }
+// const { verifyPayUCallbackHash, generatePayUHash } = require("./verify-payment");
 
 // // ---------------------------
 // // Middleware
@@ -203,8 +142,12 @@ app.listen(PORT, () => console.log(`Server started at PORT: ${PORT}`));
 
 // app.use(cors(corsOptions));
 
+// app.get("/", (req, res) => {
+//     res.send("HELLO FROM SERVER!");
+// });
+
 // // ---------------------------
-// // Payment Route
+// // Payment Route (Test Mode)
 // // ---------------------------
 // app.post("/payment", async (req, res) => {
 //     try {
@@ -227,11 +170,11 @@ app.listen(PORT, () => console.log(`Server started at PORT: ${PORT}`));
 //         <!DOCTYPE html>
 //         <html>
 //         <head>
-//             <title>Redirecting to PayU</title>
+//             <title>Redirecting to PayU (Test Mode)</title>
 //         </head>
 //         <body>
 //             <p>Redirecting to payment...</p>
-//           <form id="payu_form" method="post" action="https://test.payu.in/_payment" target="_self">
+//             <form id="payu_form" method="post" action="https://test.payu.in/_payment" target="_self">
 //                 <input type="hidden" name="key" value="${key}" />
 //                 <input type="hidden" name="txnid" value="${txnid}" />
 //                 <input type="hidden" name="amount" value="${amountStr}" />
@@ -255,49 +198,6 @@ app.listen(PORT, () => console.log(`Server started at PORT: ${PORT}`));
 //         res.status(500).json({ msg: error.message });
 //     }
 // });
-
-// app.get("/", (req, res) => {
-//     res.send("HELLO FROM SERVER!");
-// });
-
-// // ---------------------------
-// // Verify Payment Hash
-// // ---------------------------
-// function verifyPayUCallbackHash(body, salt) {
-//     const {
-//         status,
-//         txnid,
-//         amount,
-//         productinfo,
-//         firstname,
-//         email,
-//         key,
-//         hash,
-//         udf1 = "",
-//         udf2 = "",
-//         udf3 = "",
-//         udf4 = "",
-//         udf5 = "",
-//         udf6 = "",
-//         udf7 = "",
-//         udf8 = "",
-//         udf9 = "",
-//         udf10 = ""
-//     } = body;
-
-//     const hashString =
-//         `${salt}|${status}|${udf1}|${udf2}|${udf3}|${udf4}|${udf5}|${udf6}|${udf7}|${udf8}|${udf9}|${udf10}|${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
-
-//     const expectedHash = crypto
-//         .createHash("sha512")
-//         .update(hashString)
-//         .digest("hex");
-
-//     console.log("Expected Hash 👉", expectedHash);
-//     console.log("Received Hash 👉", hash);
-
-//     return expectedHash.toLowerCase() === hash.toLowerCase();
-// }
 
 // // ---------------------------
 // // Callback Route
@@ -329,4 +229,4 @@ app.listen(PORT, () => console.log(`Server started at PORT: ${PORT}`));
 // // Server
 // // ---------------------------
 // const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => console.log(`Server started at PORT: ${PORT}`));
+// app.listen(PORT, () => console.log(`Server started at PORT: ${PORT} (Test Mode)`));
