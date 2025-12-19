@@ -80,10 +80,8 @@ app.post("/payment", async (req, res) => {
                 <input type="hidden" name="firstname" value="${firstname}" />
                 <input type="hidden" name="email" value="${email}" />
                 <input type="hidden" name="phone" value="${phone}" />
-                // <input type="hidden" name="surl" value="https://payu-socd.onrender.com/success" />
-                // <input type="hidden" name="furl" value="https://payu-socd.onrender.com/failure" />
-                <input type="hidden" name="surl" value="http://localhost:5000/success" />
-                <input type="hidden" name="furl" value="http://localhost:5000/failure" />
+                <input type="hidden" name="surl" value="https://payu-socd.onrender.com/success" />
+                <input type="hidden" name="furl" value="https://payu-socd.onrender.com/failure" />
                 <input type="hidden" name="hash" value="${hash}" />
             </form>
             <script>document.getElementById('payu_form').submit();</script>
