@@ -152,6 +152,7 @@ app.post("/:status", async (req, res) => {
 
         // Get the first transaction object
         const txnDetails = Object.values(verification.transaction_details)[0];
+        console.log(txnDetails)
 
         if (!txnDetails) {
             return res.redirect(
@@ -164,6 +165,7 @@ app.post("/:status", async (req, res) => {
                 `https://pay-u-orpin.vercel.app/success?txnid=${txnDetails.txnid}&amount=${txnDetails.amt}&mode=${txnDetails.mode}&payuid=${txnDetails.mihpayid}`
             );
         } else {
+            console.log(txnDetails)
             return res.redirect(
                 `https://pay-u-orpin.vercel.app/failure?txnid=${txnDetails.txnid}&error=${txnDetails.error_Message}`
             );
